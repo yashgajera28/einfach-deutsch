@@ -17,8 +17,8 @@ models:
     max_length: 256
     prefix: "vereinfachen: "
   lora:
-    name: "LeoLM/leo-hessianai-7b"
-    fallback_name: "mistralai/Mistral-7B-Instruct-v0.2"
+    name: "mistralai/Mistral-7B-Instruct-v0.2"
+    fallback_name: "LeoLM/leo-hessianai-7b"
     max_seq_length: 512
     control_tokens:
       - "<A2>"
