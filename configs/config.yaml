@@ -1,0 +1,87 @@
+project:
+  name: "einfach-deutsch"
+  version: "0.1.0"
+
+paths:
+  root: "."
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  data_evaluation: "data/evaluation"
+  checkpoints: "checkpoints"
+  outputs: "outputs"
+  logs: "logs"
+
+models:
+  baseline:
+    name: "google/mt5-small"
+    max_length: 256
+    prefix: "vereinfachen: "
+  lora:
+    name: "LeoLM/leo-hessianai-7b"
+    fallback_name: "mistralai/Mistral-7B-Instruct-v0.2"
+    max_seq_length: 512
+    control_tokens:
+      - "<A2>"
+      - "<B1>"
+      - "<B2>"
+
+lora:
+  r: 16
+  lora_alpha: 32
+  target_modules:
+    - "q_proj"
+    - "v_proj"
+    - "k_proj"
+    - "o_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+training:
+  baseline:
+    batch_size: 16
+    learning_rate: 5.0e-5
+    num_epochs: 5
+    warmup_steps: 500
+    eval_strategy: "steps"
+    eval_steps: 500
+    save_strategy: "steps"
+    save_total_limit: 2
+    predict_with_generate: true
+    generation_max_length: 256
+  lora:
+    batch_size: 4
+    gradient_accumulation_steps: 4
+    learning_rate: 2.0e-4
+    num_epochs: 3
+    fp16: true
+    logging_steps: 10
+    max_seq_length: 512
+
+simplification:
+  default_level: "B1"
+  levels:
+    - "A2"
+    - "B1"
+    - "B2"
+
+readability:
+  lix_green_max: 35
+  lix_yellow_max: 50
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_concurrent_requests: 5
+
+frontend:
+  port: 8501
+
+spacy:
+  model: "de_core_news_lg"
+
+sentence_transformer:
+  model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+logging:
+  level: "INFO"
