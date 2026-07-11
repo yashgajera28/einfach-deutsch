@@ -26,9 +26,9 @@ wheels/
 data/raw/*
 data/processed/*
 data/evaluation/*
-models/
-checkpoints/
-outputs/
+/models/
+/checkpoints/
+/outputs/
 *.bin
 *.safetensors
 *.pt
@@ -42,7 +42,7 @@ outputs/
 !data/evaluation/.gitkeep
 
 # Logs
-logs/
+/logs/
 *.log
 wandb/
 tensorboard/
