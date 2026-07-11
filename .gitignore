@@ -1,0 +1,68 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data and model artifacts
+data/raw/*
+data/processed/*
+data/evaluation/*
+models/
+checkpoints/
+outputs/
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.arrow
+*.parquet
+*.jsonl
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/evaluation/.gitkeep
+
+# Logs
+logs/
+*.log
+wandb/
+tensorboard/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Docker
+.dockerignore
