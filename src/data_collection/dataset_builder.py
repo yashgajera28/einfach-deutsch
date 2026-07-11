@@ -121,7 +121,6 @@ def build_dataset(
         ``test`` splits.
     """
     sources = sources or ["wikipedia", "bureaucratic", "klexikon"]
-    max_tokens = config.get("models", {}).get("baseline", {}).get("max_length", 256)
 
     loaders = _DEMO_LOADERS if demo else _SOURCE_LOADERS
     all_pairs: list[dict[str, str]] = []
@@ -152,7 +151,7 @@ def build_dataset(
             all_pairs.append(pair)
 
     logger.info("Loaded %d raw pairs from %d source(s)", len(all_pairs), len(sources))
-    filtered = apply_quality_filters(all_pairs, max_tokens=max_tokens)
+    filtered = apply_quality_filters(all_pairs, config)
     logger.info("Retained %d pairs after quality filtering", len(filtered))
 
     if len(filtered) < 3:
