@@ -65,14 +65,24 @@ if _FastAPI is not None:
 
     def _load_simplifier(config: dict[str, Any]) -> Any | None:
         """Load the simplifier when inference dependencies are present."""
-        try:
-            from src.models.simplifier import Simplifier
+        from src.models.simplifier import Simplifier
 
-            simplifier = Simplifier(config, backend="lora")
-            return simplifier if simplifier.model is not None else None
+        backend = config.get("api", {}).get("default_backend", "baseline")
+        try:
+            simplifier = Simplifier(config, backend=backend)
+            if simplifier.model is not None:
+                return simplifier
         except Exception as exc:
-            logger.warning("Could not load simplifier: %s", exc)
-            return None
+            logger.warning("Could not load %s simplifier: %s", backend, exc)
+
+        if backend != "baseline":
+            try:
+                simplifier = Simplifier(config, backend="baseline")
+                if simplifier.model is not None:
+                    return simplifier
+            except Exception as exc:
+                logger.warning("Could not load baseline simplifier: %s", exc)
+        return None
 
     @asynccontextmanager
     async def lifespan(app: _FastAPI):

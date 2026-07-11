@@ -89,9 +89,12 @@ class Simplifier:
         return load_config(config)
 
     def _default_model_path(self) -> str:
-        """Return the default model identifier from config."""
+        """Return the default model identifier, preferring a local checkpoint."""
         models = self.config.get("models", {})
         if self.backend == "baseline":
+            checkpoint = Path(self.config.get("paths", {}).get("checkpoints", "checkpoints")) / "baseline" / "final_model"
+            if checkpoint.exists():
+                return str(checkpoint)
             return models.get("baseline", {}).get("name", "google/mt5-small")
         return models.get("lora", {}).get("name", "LeoLM/leo-hessianai-7b")
 
