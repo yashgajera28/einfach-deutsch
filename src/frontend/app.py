@@ -46,23 +46,14 @@ try:
 except ImportError:
     pass
 
-_PYPDF2_AVAILABLE = False
-PdfReader: Any = None
+_EXTRACT_AVAILABLE = False
+_extract_text: Any = None
 try:
-    from PyPDF2 import PdfReader
+    from src.api.extract import extract_text as _extract_text
 
-    _PYPDF2_AVAILABLE = True
-except ImportError:
-    pass
-
-_DOCX_AVAILABLE = False
-Document: Any = None
-try:
-    from docx import Document
-
-    _DOCX_AVAILABLE = True
-except ImportError:
-    pass
+    _EXTRACT_AVAILABLE = True
+except ImportError as exc:
+    warnings.warn(f"Text extractor is unavailable: {exc}", stacklevel=2)
 
 _SIMPLIFIER_AVAILABLE = False
 Simplifier: Any = None
@@ -244,25 +235,27 @@ def diff_highlight(original: str, simplified: str) -> str:
     return " ".join(parts)
 
 
-def extract_uploaded_text(uploaded_file: Any) -> str:
-    """Extract text from an uploaded PDF, DOCX or TXT file."""
+def extract_uploaded_file(uploaded_file: Any) -> tuple[str, dict[int, str] | str]:
+    """Extract text from an uploaded PDF, DOCX, or TXT file.
+
+    Returns a tuple of (source_type, content) where content is either a
+    page-by-page mapping for PDFs or the full text for other formats.
+    """
     if uploaded_file is None:
-        return ""
+        return ("", "")
 
-    name = uploaded_file.name.lower()
-    if name.endswith(".pdf"):
-        if not _PYPDF2_AVAILABLE:
-            raise RuntimeError("PyPDF2 is not installed; PDF upload is unavailable.")
-        reader = PdfReader(uploaded_file)
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    if not _EXTRACT_AVAILABLE or _extract_text is None:
+        raise RuntimeError("Text extractor is not available. Install the required dependencies.")
 
-    if name.endswith(".docx"):
-        if not _DOCX_AVAILABLE:
-            raise RuntimeError("python-docx is not installed; DOCX upload is unavailable.")
-        doc = Document(uploaded_file)
-        return "\n".join(paragraph.text for paragraph in doc.paragraphs)
+    name = uploaded_file.name
+    file_bytes = uploaded_file.read()
+    extracted = _extract_text(name, file_bytes)
 
-    return uploaded_file.read().decode("utf-8", errors="ignore")
+    if name.lower().endswith(".pdf"):
+        return ("pdf", extracted)
+    if name.lower().endswith(".docx"):
+        return ("docx", extracted)
+    return ("txt", extracted)
 
 
 def make_txt_download(text: str, filename: str) -> str:
@@ -296,6 +289,85 @@ def make_pdf_download(text: str, filename: str) -> str:
     return f"data:text/html;charset=utf-8;base64,{encoded}"
 
 
+def _render_result_card(
+    original: str,
+    simplified: str,
+    config: dict[str, Any],
+    translations: dict[str, dict[str, str]],
+    lang: str,
+) -> None:
+    """Render original and simplified text side-by-side."""
+    original_col, simplified_col = st.columns(2)
+    with original_col:
+        st.markdown("<div class='card card-original'>", unsafe_allow_html=True)
+        st.markdown(f"**{t('original', translations, lang)}**")
+        st.markdown(original)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with simplified_col:
+        st.markdown("<div class='card card-simplified'>", unsafe_allow_html=True)
+        st.markdown(f"**{t('simplified', translations, lang)}**")
+        highlighted = diff_highlight(original, simplified)
+        st.markdown(highlighted, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _render_metrics(
+    result: dict[str, Any],
+    config: dict[str, Any],
+    translations: dict[str, dict[str, str]],
+    lang: str,
+) -> None:
+    """Render readability, confidence, and explanation metadata."""
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown(f"**{t('readability_before', translations, lang)}**")
+    before_lix = result["readability_before"]["lix"]
+    before_wstf = result["readability_before"]["wstf"]
+    st.markdown(
+        f"<span class='badge {lix_badge_class(before_lix, config)}'>LIX {before_lix:.1f}</span>"
+        f"<span class='badge badge-yellow'>WSTF {before_wstf:.1f}</span>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"**{t('readability_after', translations, lang)}**")
+    after_lix = result["readability_after"]["lix"]
+    after_wstf = result["readability_after"]["wstf"]
+    st.markdown(
+        f"<span class='badge {lix_badge_class(after_lix, config)}'>LIX {after_lix:.1f}</span>"
+        f"<span class='badge badge-yellow'>WSTF {after_wstf:.1f}</span>",
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    cols = st.columns(3)
+    cols[0].metric(t("confidence", translations, lang), f"{result['confidence']:.2%}")
+    cols[1].metric(t("level_label", translations, lang), result["level"])
+    cols[2].metric("Backend", result["backend"])
+
+    if result.get("entities_preserved"):
+        st.markdown(f"**{t('entities_preserved', translations, lang)}:** {', '.join(result['entities_preserved'])}")
+    if result.get("explanation"):
+        st.markdown(f"**{t('explanation', translations, lang)}:**")
+        for item in result["explanation"]:
+            st.markdown(f"- {item}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _render_export_buttons(simplified_text: str, translations: dict[str, dict[str, str]], lang: str) -> None:
+    """Render download buttons for the simplified text."""
+    export_col1, export_col2 = st.columns(2)
+    export_col1.markdown(
+        f"<a href='{make_txt_download(simplified_text, 'simplified.txt')}' download='simplified.txt'>"
+        f"<button>{t('export_txt', translations, lang)}</button></a>",
+        unsafe_allow_html=True,
+    )
+    export_col2.markdown(
+        f"<a href='{make_pdf_download(simplified_text, 'simplified.pdf')}' download='simplified.pdf'>"
+        f"<button>{t('export_pdf', translations, lang)}</button></a>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_simplify_page(config: dict[str, Any], translations: dict[str, dict[str, str]], lang: str) -> None:
     """Render the single-text simplification page."""
     st.header(t("simplify_tab", translations, lang))
@@ -309,12 +381,17 @@ def render_simplify_page(config: dict[str, Any], translations: dict[str, dict[st
         help=t("drag_drop", translations, lang),
     )
 
-    text_value = ""
+    source_type = ""
+    extracted_content: dict[int, str] | str = ""
     if uploaded_file is not None:
         try:
-            text_value = extract_uploaded_text(uploaded_file)
+            source_type, extracted_content = extract_uploaded_file(uploaded_file)
         except Exception as exc:
-            st.error(str(exc))
+            st.warning(str(exc))
+
+    text_value = ""
+    if source_type != "pdf" and isinstance(extracted_content, str):
+        text_value = extracted_content
 
     text = st.text_area(t("input_label", translations, lang), value=text_value, height=200)
 
@@ -327,10 +404,6 @@ def render_simplify_page(config: dict[str, Any], translations: dict[str, dict[st
     explain = col_b.checkbox(t("explain", translations, lang), value=False)
 
     if st.button(t("simplify_button", translations, lang), type="primary"):
-        if not text.strip():
-            st.info(t("empty_input", translations, lang))
-            return
-
         if not _SIMPLIFIER_AVAILABLE:
             st.error("Cannot run simplification because the Simplifier model is unavailable.")
             return
@@ -338,75 +411,52 @@ def render_simplify_page(config: dict[str, Any], translations: dict[str, dict[st
         backend = config.get("frontend", {}).get("backend", "baseline")
         simplifier = Simplifier(config, backend=backend)
 
+        if source_type == "pdf" and isinstance(extracted_content, dict):
+            pages = {num: txt for num, txt in extracted_content.items() if txt.strip()}
+            if not pages:
+                st.info(t("empty_input", translations, lang))
+                return
+
+            st.markdown("<div class='card'><h4>{}</h4></div>".format(t("output_label", translations, lang)), unsafe_allow_html=True)
+            simplified_pages: list[str] = []
+            for page_num in sorted(pages):
+                with st.spinner(t("loading", translations, lang)):
+                    result = simplifier.simplify(
+                        pages[page_num],
+                        level=level,
+                        preserve_entities=preserve_entities,
+                        explain=explain,
+                    )
+                simplified_pages.append(result["simplified"])
+                with st.expander(f"{t('pdf', translations, lang)} - {t('page', translations, lang)} {page_num}"):
+                    _render_result_card(pages[page_num], result["simplified"], config, translations, lang)
+                    _render_metrics(result, config, translations, lang)
+
+            combined_original = "\n".join(pages[num] for num in sorted(pages))
+            combined_simplified = "\n".join(simplified_pages)
+            _render_export_buttons(combined_simplified, translations, lang)
+            return
+
+        active_text = text.strip()
+        if not active_text and source_type in {"docx", "txt"} and isinstance(extracted_content, str):
+            active_text = extracted_content.strip()
+
+        if not active_text:
+            st.info(t("empty_input", translations, lang))
+            return
+
         with st.spinner(t("loading", translations, lang)):
             result = simplifier.simplify(
-                text,
+                active_text,
                 level=level,
                 preserve_entities=preserve_entities,
                 explain=explain,
             )
 
         st.markdown("<div class='card'><h4>{}</h4></div>".format(t("output_label", translations, lang)), unsafe_allow_html=True)
-
-        original_col, simplified_col = st.columns(2)
-        with original_col:
-            st.markdown("<div class='card card-original'>", unsafe_allow_html=True)
-            st.markdown(f"**{t('original', translations, lang)}**")
-            st.markdown(text)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with simplified_col:
-            st.markdown("<div class='card card-simplified'>", unsafe_allow_html=True)
-            st.markdown(f"**{t('simplified', translations, lang)}**")
-            highlighted = diff_highlight(text, result["simplified"])
-            st.markdown(highlighted, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown(f"**{t('readability_before', translations, lang)}**")
-        before_lix = result["readability_before"]["lix"]
-        before_wstf = result["readability_before"]["wstf"]
-        st.markdown(
-            f"<span class='badge {lix_badge_class(before_lix, config)}'>LIX {before_lix:.1f}</span>"
-            f"<span class='badge badge-yellow'>WSTF {before_wstf:.1f}</span>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(f"**{t('readability_after', translations, lang)}**")
-        after_lix = result["readability_after"]["lix"]
-        after_wstf = result["readability_after"]["wstf"]
-        st.markdown(
-            f"<span class='badge {lix_badge_class(after_lix, config)}'>LIX {after_lix:.1f}</span>"
-            f"<span class='badge badge-yellow'>WSTF {after_wstf:.1f}</span>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        cols = st.columns(3)
-        cols[0].metric(t("confidence", translations, lang), f"{result['confidence']:.2%}")
-        cols[1].metric(t("level_label", translations, lang), result["level"])
-        cols[2].metric("Backend", result["backend"])
-
-        if result.get("entities_preserved"):
-            st.markdown(f"**{t('entities_preserved', translations, lang)}:** {', '.join(result['entities_preserved'])}")
-        if result.get("explanation"):
-            st.markdown(f"**{t('explanation', translations, lang)}:**")
-            for item in result["explanation"]:
-                st.markdown(f"- {item}")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        export_col1, export_col2 = st.columns(2)
-        simplified_text = result["simplified"]
-        export_col1.markdown(
-            f"<a href='{make_txt_download(simplified_text, 'simplified.txt')}' download='simplified.txt'>"
-            f"<button>{t('export_txt', translations, lang)}</button></a>",
-            unsafe_allow_html=True,
-        )
-        export_col2.markdown(
-            f"<a href='{make_pdf_download(simplified_text, 'simplified.pdf')}' download='simplified.pdf'>"
-            f"<button>{t('export_pdf', translations, lang)}</button></a>",
-            unsafe_allow_html=True,
-        )
+        _render_result_card(active_text, result["simplified"], config, translations, lang)
+        _render_metrics(result, config, translations, lang)
+        _render_export_buttons(result["simplified"], translations, lang)
 
 
 def render_batch_page(config: dict[str, Any], translations: dict[str, dict[str, str]], lang: str) -> None:

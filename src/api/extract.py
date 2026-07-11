@@ -79,9 +79,33 @@ def extract_text_from_pdf(file_bytes: bytes) -> dict[int, str]:
     return pages
 
 
+def _extract_docx_fallback(file_bytes: bytes) -> str:
+    """Extract paragraph text from a DOCX archive without python-docx."""
+    import xml.etree.ElementTree as ET
+    import zipfile
+
+    namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+        with archive.open("word/document.xml") as fh:
+            tree = ET.parse(fh)
+
+    paragraphs: list[str] = []
+    for paragraph in tree.iter(f"{namespace}p"):
+        texts = [node.text or "" for node in paragraph.iter(f"{namespace}t")]
+        paragraphs.append("".join(texts))
+    return "\n".join(paragraphs)
+
+
 def extract_text_from_docx(file_bytes: bytes) -> str:
-    """Extract text from a DOCX byte stream."""
-    docx = _require_docx()
+    """Extract text from a DOCX byte stream.
+
+    Falls back to a lightweight XML parser when python-docx is unavailable.
+    """
+    try:
+        docx = _require_docx()
+    except RuntimeError:
+        return _extract_docx_fallback(file_bytes)
+
     document = docx.Document(io.BytesIO(file_bytes))
     return "\n".join(paragraph.text for paragraph in document.paragraphs)
 

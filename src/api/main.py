@@ -25,6 +25,7 @@ _JSONResponse: Any = None
 
 _load_config: Any = None
 _extract_text_from_pdf: Any = None
+_extract_text: Any = None
 
 schemas: Any = None
 _compute_sentence_bleu: Any = None
@@ -49,6 +50,7 @@ except ImportError as exc:
 if _FastAPI is not None:
     try:
         from src.api import schemas as _schemas
+        from src.api.extract import extract_text as _extract_text
         from src.api.extract import extract_text_from_pdf as _extract_text_from_pdf
         from src.evaluation.bleu import compute_sentence_bleu as _compute_sentence_bleu
         from src.evaluation.readability import readability_delta as _readability_delta
@@ -167,12 +169,8 @@ if _FastAPI is not None:
         )
         return _schemas.SimplifyResponse(**result)
 
-    @app.post("/simplify/pdf", response_model=_schemas.PdfSimplifyResponse)
-    async def simplify_pdf(file: _UploadFile = _File(...)) -> _schemas.PdfSimplifyResponse:
-        """Simplify text extracted from an uploaded PDF file."""
-        content = await file.read()
-        pages = _extract_text_from_pdf(content)
-
+    async def _simplify_pdf_pages(pages: dict[int, str]) -> _schemas.PdfSimplifyResponse:
+        """Simplify text for each extracted PDF page."""
         results: list[_schemas.SimplifyResponse] = []
         for page_num in sorted(pages):
             text = pages[page_num]
@@ -187,6 +185,46 @@ if _FastAPI is not None:
             pages=results,
             combined_text=combined_text,
             combined_simplified=combined_simplified,
+        )
+
+    @app.post("/simplify/pdf", response_model=_schemas.PdfSimplifyResponse)
+    async def simplify_pdf(file: _UploadFile = _File(...)) -> _schemas.PdfSimplifyResponse:
+        """Simplify text extracted from an uploaded PDF file."""
+        content = await file.read()
+        try:
+            pages = _extract_text_from_pdf(content)
+        except Exception as exc:
+            raise _HTTPException(status_code=400, detail=f"PDF extraction failed: {exc}") from exc
+
+        if not pages or not any(text.strip() for text in pages.values()):
+            raise _HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+
+        return await _simplify_pdf_pages(pages)
+
+    @app.post("/simplify/file")
+    async def simplify_file(file: _UploadFile = _File(...)) -> _schemas.PdfSimplifyResponse | _schemas.FileSimplifyResponse:
+        """Simplify text extracted from an uploaded PDF, DOCX, or TXT file."""
+        filename = file.filename or ""
+        content = await file.read()
+
+        try:
+            extracted = _extract_text(filename, content)
+        except Exception as exc:
+            raise _HTTPException(status_code=400, detail=f"File extraction failed: {exc}") from exc
+
+        if isinstance(extracted, dict):
+            if not any(text.strip() for text in extracted.values()):
+                raise _HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+            return await _simplify_pdf_pages(extracted)
+
+        if not extracted.strip():
+            raise _HTTPException(status_code=400, detail="No text could be extracted from the file.")
+
+        result = await _simplify_text(extracted, "B1", True, False)
+        return _schemas.FileSimplifyResponse(
+            source_type=filename.lower().rsplit(".", 1)[-1],
+            original_text=extracted,
+            **result,
         )
 
     @app.post("/evaluate", response_model=_schemas.EvaluateResponse)

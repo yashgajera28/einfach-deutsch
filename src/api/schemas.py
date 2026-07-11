@@ -61,6 +61,21 @@ class PdfSimplifyResponse(BaseModel):
     combined_simplified: str = Field(..., description="Concatenated simplified text")
 
 
+class FileSimplifyResponse(BaseModel):
+    """Response body for DOCX/TXT file simplification."""
+
+    source_type: str = Field(..., description="Original file extension (docx, txt, md)")
+    original_text: str = Field(..., description="Extracted original text")
+    simplified: str = Field(..., description="Simplified text")
+    readability_before: ReadabilityMetrics = Field(..., description="Readability before simplification")
+    readability_after: ReadabilityMetrics = Field(..., description="Readability after simplification")
+    confidence: float = Field(..., description="Heuristic confidence score in [0, 1]")
+    level: str = Field(..., description="Target language level")
+    backend: str = Field(..., description="Model backend used for simplification")
+    entities_preserved: list[str] = Field(default_factory=list, description="Named entities preserved")
+    explanation: list[str] | None = Field(default=None, description="Rule-based explanations for changes")
+
+
 class EvaluateRequest(BaseModel):
     """Request body for metric evaluation."""
 
