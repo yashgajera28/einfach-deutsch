@@ -60,6 +60,7 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+*.nbconvert.ipynb
 
 # Streamlit
 .streamlit/secrets.toml
