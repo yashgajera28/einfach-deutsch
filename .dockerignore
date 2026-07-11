@@ -1,0 +1,33 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.env
+.env.*
+
+# Data directories (keep .gitkeep files so empty dirs stay tracked)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/evaluation/*
+!data/evaluation/.gitkeep
+
+models/
+checkpoints/
+outputs/
+logs/
+logs/*
+
+notebooks/
+
+# Docker files themselves are tiny; ignore local build artifacts
+.dockerignore

@@ -14,13 +14,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Einfach Deutsch frontend")
     parser.add_argument("--config", default="configs/config.yaml", help="Path to config")
     parser.add_argument("--server.port", dest="port", default=None, type=int, help="Port")
+    parser.add_argument("--host", default="0.0.0.0", help="Server address")
     args = parser.parse_args()
 
     config = load_config(args.config)
     port = args.port or config["frontend"]["port"]
 
     app_path = Path(__file__).parent / "src" / "frontend" / "app.py"
-    cmd = ["streamlit", "run", str(app_path), f"--server.port={port}"]
+    cmd = [
+        "streamlit",
+        "run",
+        str(app_path),
+        f"--server.port={port}",
+        f"--server.address={args.host}",
+    ]
     subprocess.run(cmd, check=True)
     return 0
 

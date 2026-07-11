@@ -65,4 +65,3 @@ Thumbs.db
 .streamlit/secrets.toml
 
 # Docker
-.dockerignore

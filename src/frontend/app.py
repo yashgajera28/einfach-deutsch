@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import difflib
 import json
+import os
 import warnings
 from pathlib import Path
 from typing import Any
@@ -95,6 +96,10 @@ except ImportError as exc:
 
 CONFIG_PATH = Path(__file__).parents[2] / "configs" / "config.yaml"
 TRANSLATIONS_PATH = Path(__file__).parent / "translations.json"
+
+# Backend URL for a future HTTP API mode. The default local mode still calls the
+# Simplifier directly so the frontend works without a running API server.
+API_URL = os.environ.get("API_URL", "")
 
 _CSS = """
 <style>
