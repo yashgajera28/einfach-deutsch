@@ -6,9 +6,12 @@ import base64
 import difflib
 import json
 import os
+import sys
 import warnings
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).parents[2]))
 
 _STREAMLIT_AVAILABLE = False
 st: Any = None
