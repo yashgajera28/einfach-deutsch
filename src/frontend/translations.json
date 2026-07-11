@@ -58,6 +58,13 @@
     "no_results": "Noch keine Ergebnisse.",
     "language": "Sprache",
     "nav": "Navigation",
+    "settings": "Einstellungen",
+    "input_title": "Eingabe",
+    "output_title": "Ausgabe",
+    "metrics": "Metriken",
+    "preview": "Vorschau",
+    "diff_legend": "Hervorgehobene Wörter wurden verändert.",
+    "model_disclaimer": "Das Modell ist mit Demo-Daten trainiert; die Ausgabequalität wird mit mehr Daten besser.",
     "about_text": "Diese Anwendung vereinfacht komplexe deutsche Texte auf ein bestimmtes Sprachniveau (A2, B1 oder B2). Sie kombiniert ein Transformer-Modell mit regelbasierten Nachbearbeitungen, um Lesbarkeit und Verständlichkeit zu verbessern."
   },
   "en": {
@@ -119,6 +126,13 @@
     "no_results": "No results yet.",
     "language": "Language",
     "nav": "Navigation",
+    "settings": "Settings",
+    "input_title": "Input",
+    "output_title": "Output",
+    "metrics": "Metrics",
+    "preview": "Preview",
+    "diff_legend": "Highlighted words were changed.",
+    "model_disclaimer": "The model is trained on demo data; output quality improves with more data.",
     "about_text": "This application simplifies complex German text to a target language level (A2, B1, or B2). It combines a transformer model with rule-based post-processing to improve readability and comprehension."
   }
 }
