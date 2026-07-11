@@ -312,6 +312,51 @@ def _render_result_card(
         st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _render_entities_box(
+    result: dict[str, Any],
+    translations: dict[str, dict[str, str]],
+    lang: str,
+) -> None:
+    """Render a compact info box with extracted entities."""
+    entities = result.get("entities_preserved") or []
+    if not entities:
+        return
+
+    items = " ".join(
+        f"<span style='background-color:#e0f2fe;color:#0c4a6e;padding:0.2rem 0.5rem;border-radius:0.35rem;font-size:0.85rem;margin-right:0.35rem;display:inline-block;margin-bottom:0.35rem;'>{ent}</span>"
+        for ent in entities
+    )
+    st.markdown(
+        f"<div style='background-color:#f0f9ff;border-left:4px solid #0ea5e9;border-radius:0.5rem;padding:0.75rem;margin-bottom:1rem;'>"
+        f"<strong>{t('entities', translations, lang)}</strong><br>{items}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_explanation_list(
+    result: dict[str, Any],
+    translations: dict[str, dict[str, str]],
+    lang: str,
+) -> None:
+    """Render explanations as a styled list with amber bullets."""
+    explanation = result.get("explanation")
+    if not explanation:
+        return
+
+    items = "".join(
+        f"<li style='margin-bottom:0.35rem;'><span style='color:#f59e0b;font-weight:700;margin-right:0.4rem;'>•</span>{item}</li>"
+        for item in explanation
+    )
+    st.markdown(
+        f"<div style='margin-top:0.75rem;'>"
+        f"<strong>{t('explanation', translations, lang)}</strong>"
+        f"<ul style='list-style:none;padding-left:0;margin-top:0.4rem;'>{items}</ul>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _render_metrics(
     result: dict[str, Any],
     config: dict[str, Any],
@@ -344,12 +389,8 @@ def _render_metrics(
     cols[1].metric(t("level_label", translations, lang), result["level"])
     cols[2].metric("Backend", result["backend"])
 
-    if result.get("entities_preserved"):
-        st.markdown(f"**{t('entities_preserved', translations, lang)}:** {', '.join(result['entities_preserved'])}")
-    if result.get("explanation"):
-        st.markdown(f"**{t('explanation', translations, lang)}:**")
-        for item in result["explanation"]:
-            st.markdown(f"- {item}")
+    _render_entities_box(result, translations, lang)
+    _render_explanation_list(result, translations, lang)
     st.markdown("</div>", unsafe_allow_html=True)
 
 

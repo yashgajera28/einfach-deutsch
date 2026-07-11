@@ -175,7 +175,7 @@ class Simplifier:
         )
         levels = self.config.get("simplification", {}).get("levels", ["A2", "B1", "B2"])
         if level in levels:
-            return f"{prefix}<{level}> {text}"
+            return f"<{level}> {prefix}{text}"
         return f"{prefix}{text}"
 
     def _format_lora_input(self, text: str, level: str) -> str:
@@ -234,58 +234,131 @@ class Simplifier:
             return generated.split(marker, 1)[-1].strip()
         return generated.strip()
 
+    def _extract_fact_phrases(self, text: str) -> list[str]:
+        """Collect dates, amounts, legal references, and named entities."""
+        if not text:
+            return []
+
+        items: list[str] = []
+        seen: set[str] = set()
+
+        for func in (
+            spacy_pipe.extract_dates,
+            spacy_pipe.extract_amounts,
+            spacy_pipe.extract_legal_references,
+        ):
+            try:
+                for value in func(text):
+                    key = value.lower().strip()
+                    if key and key not in seen:
+                        seen.add(key)
+                        items.append(value)
+            except Exception:
+                continue
+
+        try:
+            for ent_text, _ in spacy_pipe.entities(text):
+                key = ent_text.lower().strip()
+                if key and key not in seen:
+                    seen.add(key)
+                    items.append(ent_text)
+        except Exception:
+            pass
+
+        return items
+
     def _preserve_entities(self, original: str, simplified: str) -> tuple[str, list[str]]:
-        """Re-inject named entities that disappeared during simplification."""
-        original_ents = spacy_pipe.entities(original)
-        if not original_ents:
+        """Re-inject factual phrases that disappeared during simplification.
+
+        Returns the updated simplified text and the list of preserved items.
+        """
+        original_phrases = self._extract_fact_phrases(original)
+        if not original_phrases:
             return simplified, []
 
         preserved: list[str] = []
         missing: list[str] = []
-        for ent_text, _ in original_ents:
-            if ent_text.lower() not in simplified.lower():
-                missing.append(ent_text)
+        simplified_lower = simplified.lower()
+
+        for phrase in original_phrases:
+            if phrase.lower() in simplified_lower:
+                preserved.append(phrase)
             else:
-                preserved.append(ent_text)
+                missing.append(phrase)
 
         if missing:
-            appendix = " (Wichtige Begriffe: " + ", ".join(missing) + ")"
-            simplified = simplified.rstrip() + appendix
+            simplified = self._merge_missing_phrases(simplified, missing)
             preserved.extend(missing)
 
         return simplified, preserved
 
-    def _build_explanation(self, original: str, simplified: str) -> list[str]:
-        """Produce rule-based explanations for the observed changes."""
-        explanations: list[str] = []
+    def _merge_missing_phrases(self, text: str, missing: list[str]) -> str:
+        """Append or insert missing factual phrases without duplicating content."""
+        text = text.rstrip()
+        if not text:
+            return " ".join(missing)
 
+        connector = " (Wichtige Begriffe: " + ", ".join(missing) + ")"
+        if text.endswith(")"):
+            existing = text[:-1]
+            return existing + ", " + ", ".join(missing) + ")"
+        return text + connector
+
+    def _build_explanation(self, original: str, simplified: str) -> list[str]:
+        """Produce clear, rule-based explanations for observed changes."""
+        explanations: list[str] = []
         original_lower = original.lower()
         simplified_lower = simplified.lower()
 
-        if "wurde" in original_lower and "wurde" not in simplified_lower:
+        original_words = re.findall(r"[a-zäöüßA-ZÄÖÜ]+(?:-[a-zäöüßA-ZÄÖÜ]+)?", original)
+        simplified_words = re.findall(r"[a-zäöüßA-ZÄÖÜ]+(?:-[a-zäöüßA-ZÄÖÜ]+)?", simplified)
+
+        passive_markers = {"wurde", "wurden", "werden", "worden"}
+        has_passive = any(marker in original_lower for marker in passive_markers) and " von " in original_lower
+        if has_passive and not any(marker in simplified_lower for marker in passive_markers):
             explanations.append("Passive voice converted to active")
-
-        original_words = re.findall(r"[a-zäöüßA-ZÄÖÜ]+", original)
-        simplified_words = re.findall(r"[a-zäöüßA-ZÄÖÜ]+", simplified)
-        long_original = [w for w in original_words if len(w) > 12]
-        if long_original and len(simplified_words) >= len(original_words):
-            explanations.append("Compound word split")
-
-        legal_refs = spacy_pipe.extract_legal_references(original) + spacy_pipe.extract_legal_references(simplified)
-        if legal_refs:
-            explanations.append("Legal term explained")
 
         original_sents = len(spacy_pipe.sentences(original))
         simplified_sents = len(spacy_pipe.sentences(simplified))
         if simplified_sents > original_sents:
             explanations.append("Long sentence split")
 
+        long_original = [w for w in original_words if len(w) > 12]
+        short_simplified = [w for w in simplified_words if len(w) < 8]
+        if long_original and short_simplified and len(simplified_words) <= len(original_words):
+            explanations.append("Compound word simplified")
+
+        if spacy_pipe.extract_legal_references(original) or spacy_pipe.extract_legal_references(simplified):
+            explanations.append("Legal term preserved")
+
+        connector_map = {
+            "deshalb": "daher",
+            "aufgrund": "wegen",
+            "trotzdem": "dennoch",
+            "deswegen": "daher",
+            "während": "wenn",
+        }
+        for original_conn, simplified_conn in connector_map.items():
+            if original_conn in original_lower and original_conn not in simplified_lower:
+                explanations.append(f"Complex connector replaced ('{original_conn}' → '{simplified_conn}')")
+                break
+
         if not explanations:
-            matcher = difflib.SequenceMatcher(None, original.split(), simplified.split())
+            matcher = difflib.SequenceMatcher(None, original_words, simplified_words)
             if any(tag != "equal" for tag, _, _, _, _ in matcher.get_opcodes()):
                 explanations.append("Vocabulary simplified")
 
         return explanations
+
+    def extract_entities_for_display(self, text: str) -> list[dict[str, str]]:
+        """Return entities formatted for frontend display.
+
+        Each entry contains ``text`` and ``label``.
+        """
+        try:
+            return spacy_pipe.extract_entities(text)
+        except Exception:
+            return []
 
     def confidence_score(self, original: str, simplified: str) -> float:
         """Return a heuristic confidence score in ``[0, 1]``.
