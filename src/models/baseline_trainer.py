@@ -187,7 +187,7 @@ def train(
         learning_rate=5e-5,
         num_train_epochs=num_epochs,
         warmup_steps=warmup_steps,
-        eval_strategy="steps",
+        evaluation_strategy="steps",
         eval_steps=eval_steps,
         save_strategy="steps",
         save_total_limit=save_total_limit,
