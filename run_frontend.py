@@ -1,6 +1,7 @@
 """Start the Streamlit frontend."""
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,13 +23,16 @@ def main() -> int:
 
     app_path = Path(__file__).parent / "src" / "frontend" / "app.py"
     cmd = [
+        sys.executable,
+        "-m",
         "streamlit",
         "run",
         str(app_path),
         f"--server.port={port}",
         f"--server.address={args.host}",
     ]
-    subprocess.run(cmd, check=True)
+    env = {"PYTHONPATH": str(Path(__file__).parent), **dict(os.environ)}
+    subprocess.run(cmd, check=True, env=env)
     return 0
 
 
