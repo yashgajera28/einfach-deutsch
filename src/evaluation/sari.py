@@ -1,5 +1,7 @@
 """SARI metric for text simplification."""
 
+from __future__ import annotations
+
 from collections import Counter
 from typing import Iterable
 

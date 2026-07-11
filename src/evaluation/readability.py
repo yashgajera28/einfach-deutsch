@@ -51,6 +51,9 @@ def _count_syllables(word: str) -> int:
 
 def lix_score(text: str) -> float:
     """Compute LIX readability score."""
+    if not text or not text.strip():
+        return 0.0
+
     sentences = _split_sentences(text)
     words = _words(text)
 
@@ -63,6 +66,9 @@ def lix_score(text: str) -> float:
 
 def wstf_score(text: str) -> float:
     """Compute Wiener Sachtextformel readability score."""
+    if not text or not text.strip():
+        return 0.0
+
     sentences = _split_sentences(text)
     words = _words(text)
 

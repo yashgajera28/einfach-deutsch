@@ -9,13 +9,14 @@ from src.preprocessing.quality import (
     filter_max_length,
     filter_non_german,
 )
-from src.preprocessing.spacy_pipe import entities, get_nlp, sentences
+from src.preprocessing.spacy_pipe import entities, extract_legal_references, get_nlp, sentences
 
 __all__ = [
     "align_sentences",
     "clean_html",
     "clean_wiki_markup",
     "entities",
+    "extract_legal_references",
     "get_nlp",
     "sentences",
     "filter_identical",

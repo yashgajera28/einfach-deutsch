@@ -1,5 +1,7 @@
 """Helpers for human evaluation of simplifications."""
 
+from __future__ import annotations
+
 import csv
 import random
 from pathlib import Path

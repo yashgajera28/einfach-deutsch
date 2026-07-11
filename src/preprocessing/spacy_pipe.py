@@ -76,3 +76,19 @@ def entities(text: str) -> list[tuple[str, str]]:
 
     doc = nlp(text)
     return [(ent.text, ent.label_) for ent in doc.ents]
+
+
+_LEGAL_REFERENCE_RE = re.compile(
+    r"§\s*\d+[a-z]?\s*(?:Abs\.\s*\d+)?\s*(?:Satz\s*\d+)?",
+    re.IGNORECASE,
+)
+
+
+def extract_legal_references(text: str) -> list[str]:
+    """Extract legal references such as ``§ 123 Abs. 1 Satz 2``.
+
+    Returns an empty list if the input is empty.
+    """
+    if not text:
+        return []
+    return _LEGAL_REFERENCE_RE.findall(text)

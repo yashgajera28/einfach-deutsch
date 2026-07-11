@@ -1,5 +1,7 @@
 """BLEU wrapper around sacrebleu."""
 
+from __future__ import annotations
+
 from sacrebleu import corpus_bleu, sentence_bleu
 
 
