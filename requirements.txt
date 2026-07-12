@@ -22,7 +22,7 @@ plotly
 fpdf2
 
 pandas
-numpy>=2.0.0
+numpy>=2.0.0,<2.1
 scikit-learn
 
 PyPDF2
