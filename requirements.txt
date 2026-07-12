@@ -17,7 +17,7 @@ uvicorn[standard]
 python-multipart
 pydantic
 
-streamlit
+nicegui
 plotly
 fpdf2
 

@@ -1,5 +1,5 @@
 """Frontend package for the German text simplification UI."""
 
-from src.frontend.app import main
+from src.frontend.app import index
 
-__all__ = ["main"]
+__all__ = ["index"]
