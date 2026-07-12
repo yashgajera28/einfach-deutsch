@@ -148,8 +148,8 @@ def train(
         )
 
     column_names = dataset["train"].column_names
-    source_column = "source" if "source" in column_names else column_names[0]
-    target_column = "target" if "target" in column_names else column_names[1]
+    source_column = "complex" if "complex" in column_names else ("source" if "source" in column_names else column_names[0])
+    target_column = "simple" if "simple" in column_names else ("target" if "target" in column_names else column_names[1])
 
     def preprocess(examples: dict[str, Any]) -> dict[str, Any]:
         return _preprocess_function(

@@ -253,6 +253,8 @@ def simplify_page() -> None:
                         _metric_chip(f"LIX {before.get('lix', 0):.1f} → {after.get('lix', 0):.1f}")
                         _metric_chip(f"WSTF {before.get('wstf', 0):.1f} → {after.get('wstf', 0):.1f}")
                         _metric_chip(f"Conf {result.get('confidence', 0):.2f}")
+                    if result.get("confidence", 0) < 0.1:
+                        ui.badge("Low quality output — model needs more training", color="negative").classes("q-mb-md")
                     if result.get("entities_preserved"):
                         with ui.row().classes("gap-2 q-mt-sm items-center"):
                             ui.label(_t("entities_preserved", state.lang) + ":").classes("text-caption")
@@ -442,6 +444,13 @@ def index() -> None:
     body.theme-light .q-menu {
       background: var(--ed-surface) !important;
       border: 1px solid var(--ed-border) !important;
+    }
+    .q-notification__message {
+      color: #0f172a !important;
+    }
+    .q-notification--negative .q-notification__message,
+    .q-notification--warning .q-notification__message {
+      color: #fff !important;
     }
     """)
 
