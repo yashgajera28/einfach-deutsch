@@ -120,6 +120,27 @@ class Simplifier:
                 f"{', '.join(missing)}. Install them and try again."
             )
 
+    def _load_baseline_tokenizer(self) -> Any:
+        """Load the baseline tokenizer, fixing legacy saved configs if needed."""
+        try:
+            return AutoTokenizer.from_pretrained(self.model_path)
+        except (AttributeError, ValueError, RuntimeError) as exc:
+            error_text = str(exc)
+            if "extra_special_tokens" not in error_text and "SPECIAL_TOKENS_ATTRIBUTES" not in error_text:
+                raise
+            config_path = Path(self.model_path) / "tokenizer_config.json"
+            if not config_path.exists():
+                raise
+            import json
+
+            with open(config_path, "r", encoding="utf-8") as fh:
+                tokenizer_cfg = json.load(fh)
+            if isinstance(tokenizer_cfg.get("extra_special_tokens"), list):
+                del tokenizer_cfg["extra_special_tokens"]
+                with open(config_path, "w", encoding="utf-8") as fh:
+                    json.dump(tokenizer_cfg, fh, indent=2)
+            return AutoTokenizer.from_pretrained(self.model_path)
+
     def _load_model(self) -> None:
         """Load tokenizer and model for the configured backend."""
         self._require_inference_deps()
@@ -127,7 +148,7 @@ class Simplifier:
         logger.info("Loading %s model from %s", self.backend, self.model_path)
 
         if self.backend == "baseline":
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+            self.tokenizer = self._load_baseline_tokenizer()
             self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_path)
             self.model.to(self.device)
             self.model.eval()
