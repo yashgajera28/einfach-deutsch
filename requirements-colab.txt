@@ -24,7 +24,6 @@ protobuf>=3.20.2,<6.0.0dev
 
 # Keep Colab's CUDA 12 stack; do not let any package pull CUDA 13
 cuda-toolkit<13.0
-nvidia-cuda-toolkit<13.0
 
 # API / frontend
 fastapi
