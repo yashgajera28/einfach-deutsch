@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import warnings
 from pathlib import Path
@@ -296,23 +297,29 @@ def train(
     learning_rate: float = train_cfg.get("learning_rate", 2.0e-4)
     fp16: bool = train_cfg.get("fp16", True) if _has_gpu() else False
 
-    sft_config = SFTConfig(
-        max_seq_length=max_seq_length,
-        output_dir=str(out),
-        per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=batch_size,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        learning_rate=learning_rate,
-        num_train_epochs=num_epochs,
-        fp16=fp16,
-        logging_steps=train_cfg.get("logging_steps", 10),
-        eval_strategy="steps",
-        eval_steps=50,
-        save_strategy="steps",
-        save_total_limit=2,
-        report_to=[],
-        dataloader_num_workers=0,
-    )
+    sft_kwargs: dict[str, Any] = {
+        "output_dir": str(out),
+        "per_device_train_batch_size": batch_size,
+        "per_device_eval_batch_size": batch_size,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "learning_rate": learning_rate,
+        "num_train_epochs": num_epochs,
+        "fp16": fp16,
+        "logging_steps": train_cfg.get("logging_steps", 10),
+        "eval_strategy": "steps",
+        "eval_steps": 50,
+        "save_strategy": "steps",
+        "save_total_limit": 2,
+        "report_to": [],
+        "dataloader_num_workers": 0,
+    }
+    sft_params = inspect.signature(SFTConfig.__init__).parameters
+    if "max_seq_length" in sft_params:
+        sft_kwargs["max_seq_length"] = max_seq_length
+    elif "max_length" in sft_params:
+        sft_kwargs["max_length"] = max_seq_length
+
+    sft_config = SFTConfig(**sft_kwargs)
 
     trainer = SFTTrainer(
         model=model,
