@@ -1,8 +1,5 @@
---extra-index-url https://download.pytorch.org/whl/cu121
-
-# Core ML (installed separately in notebook with CUDA 12 index to avoid Colab conflicts)
-# torch
-# torchvision
+# Core ML libraries (Colab already provides a compatible torch/cuda stack)
+# Do NOT reinstall torch/torchvision here.
 
 transformers>=5.0
 huggingface-hub>=1.2.0,<2.0
@@ -22,8 +19,9 @@ requests==2.32.4
 numpy>=1.26.0,<2.1
 protobuf>=3.20.2,<6.0.0dev
 
-# Keep Colab's CUDA 12 stack; do not let any package pull CUDA 13
+# Keep Colab's CUDA 12 stack aligned
 cuda-toolkit<13.0
+cuda-bindings~=12.9.7
 
 # API / frontend
 fastapi
