@@ -471,4 +471,5 @@ if __name__ in {"__main__", "__mp_main__"}:
         favicon="📝",
         reload=False,
         show=False,
+        storage_secret="einfach-deutsch-secret",
     )

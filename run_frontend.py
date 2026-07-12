@@ -29,6 +29,7 @@ def main() -> int:
         favicon="📝",
         reload=False,
         show=False,
+        storage_secret="einfach-deutsch-secret",
     )
     return 0
 
