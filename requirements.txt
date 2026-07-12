@@ -7,8 +7,8 @@ trl
 bitsandbytes
 datasets
 sentence-transformers
-spacy
-https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.7.0/de_core_news_lg-3.7.0-py3-none-any.whl
+spacy>=3.8.0
+https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl
 sentencepiece
 protobuf
 
@@ -22,7 +22,7 @@ plotly
 fpdf2
 
 pandas
-numpy
+numpy>=2.0.0
 scikit-learn
 
 PyPDF2
