@@ -1,0 +1,46 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+# Core ML (installed separately in notebook with CUDA 12 index to avoid Colab conflicts)
+# torch
+# torchvision
+
+transformers>=5.0
+huggingface-hub>=1.2.0,<2.0
+accelerate>=1.4.0
+peft>=0.17
+trl>=0.15
+bitsandbytes
+datasets
+sentence-transformers>=5.2.0
+spacy>=3.8.0
+https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl
+sentencepiece
+
+# Pin Colab pre-installed packages so pip does not upgrade them
+pandas==2.2.2
+requests==2.32.4
+numpy>=1.26.0,<2.1
+protobuf>=3.20.2,<6.0.0dev
+
+# API / frontend
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+nicegui
+plotly
+fpdf2
+
+# Utilities
+scikit-learn
+PyPDF2
+pytesseract
+python-docx
+pdf2image
+sacrebleu
+mwparserfromhell
+beautifulsoup4
+tqdm
+pyyaml
+
+pytest
