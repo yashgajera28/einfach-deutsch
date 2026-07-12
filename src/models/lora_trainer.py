@@ -23,6 +23,7 @@ load_from_disk: Any = None
 LoraConfig: Any = None
 TaskType: Any = None
 SFTTrainer: Any = None
+SFTConfig: Any = None
 torch: Any = None
 
 try:
@@ -47,7 +48,7 @@ except ImportError as exc:  # pragma: no cover
     logger.warning("peft is not installed: %s", exc)
 
 try:
-    from trl import SFTTrainer
+    from trl import SFTConfig, SFTTrainer
 
     _TRL_AVAILABLE = True
 except ImportError as exc:  # pragma: no cover
@@ -295,29 +296,31 @@ def train(
     learning_rate: float = train_cfg.get("learning_rate", 2.0e-4)
     fp16: bool = train_cfg.get("fp16", True) if _has_gpu() else False
 
+    sft_config = SFTConfig(
+        max_seq_length=max_seq_length,
+        output_dir=str(out),
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        learning_rate=learning_rate,
+        num_train_epochs=num_epochs,
+        fp16=fp16,
+        logging_steps=train_cfg.get("logging_steps", 10),
+        eval_strategy="steps",
+        eval_steps=50,
+        save_strategy="steps",
+        save_total_limit=2,
+        report_to=[],
+        dataloader_num_workers=0,
+    )
+
     trainer = SFTTrainer(
         model=model,
         processing_class=tokenizer,
         train_dataset=formatted_train,
         eval_dataset=formatted_val,
         peft_config=lora_config,
-        max_seq_length=max_seq_length,
-        args={
-            "output_dir": str(out),
-            "per_device_train_batch_size": batch_size,
-            "per_device_eval_batch_size": batch_size,
-            "gradient_accumulation_steps": gradient_accumulation_steps,
-            "learning_rate": learning_rate,
-            "num_train_epochs": num_epochs,
-            "fp16": fp16,
-            "logging_steps": train_cfg.get("logging_steps", 10),
-            "eval_strategy": "steps",
-            "eval_steps": 50,
-            "save_strategy": "steps",
-            "save_total_limit": 2,
-            "report_to": [],
-            "dataloader_num_workers": 0,
-        },
+        args=sft_config,
     )
 
     trainer.train()
