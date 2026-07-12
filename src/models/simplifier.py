@@ -150,6 +150,7 @@ class Simplifier:
         if self.backend == "baseline":
             self.tokenizer = self._load_baseline_tokenizer()
             self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_path)
+            self.model.resize_token_embeddings(len(self.tokenizer))
             self.model.to(self.device)
             self.model.eval()
             return

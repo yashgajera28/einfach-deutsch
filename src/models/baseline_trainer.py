@@ -137,6 +137,7 @@ def train(
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    model.resize_token_embeddings(len(tokenizer))
     model.to(device)
 
     dataset = load_from_disk(data_path)
