@@ -159,14 +159,14 @@ def _load_model(model_name: str, tokenizer: Any) -> Any:
             model_name,
             quantization_config=bnb_config,
             device_map="auto",
-            torch_dtype=dtype,
+            dtype=dtype,
             trust_remote_code=True,
         )
     else:
         if _has_gpu():
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
-                torch_dtype=dtype,
+                dtype=dtype,
                 device_map="auto",
                 trust_remote_code=True,
             )
@@ -178,7 +178,7 @@ def _load_model(model_name: str, tokenizer: Any) -> Any:
             )
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
-                torch_dtype=torch.float32,
+                dtype=torch.float32,
                 device_map="auto",
                 trust_remote_code=True,
             )
@@ -295,7 +295,8 @@ def train(
     )
     num_epochs: int = train_cfg.get("num_epochs", 3) if not demo else 1
     learning_rate: float = train_cfg.get("learning_rate", 2.0e-4)
-    fp16: bool = train_cfg.get("fp16", True) if _has_gpu() else False
+    use_4bit = _BNB_AVAILABLE and _has_gpu()
+    fp16: bool = train_cfg.get("fp16", not use_4bit) if _has_gpu() else False
 
     sft_kwargs: dict[str, Any] = {
         "output_dir": str(out),
@@ -305,6 +306,7 @@ def train(
         "learning_rate": learning_rate,
         "num_train_epochs": num_epochs,
         "fp16": fp16,
+        "bf16": False,
         "logging_steps": train_cfg.get("logging_steps", 10),
         "eval_strategy": "steps",
         "eval_steps": 50,
