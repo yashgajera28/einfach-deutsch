@@ -297,6 +297,8 @@ def train(
     learning_rate: float = train_cfg.get("learning_rate", 2.0e-4)
     use_4bit = _BNB_AVAILABLE and _has_gpu()
     fp16: bool = train_cfg.get("fp16", not use_4bit) if _has_gpu() else False
+    if use_4bit:
+        fp16 = False
 
     sft_kwargs: dict[str, Any] = {
         "output_dir": str(out),

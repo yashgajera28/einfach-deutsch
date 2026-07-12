@@ -54,7 +54,7 @@ training:
     gradient_accumulation_steps: 4
     learning_rate: 2.0e-4
     num_epochs: 3
-    fp16: true
+    fp16: false
     logging_steps: 10
     max_seq_length: 512
 
